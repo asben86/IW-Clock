@@ -5,7 +5,7 @@
   ******************************************************************************
   ** This notice applies to any and all portions of this file
   * that are not between comment pairs USER CODE BEGIN and
-  * USER CODE END. Other portions of this file, whether
+  * USER CODE END. Other portions of this file, whether 
   * inserted by the user or by software development tools
   * are owned by their respective copyright owners.
   *
@@ -47,18 +47,46 @@
 
 /* Private define ------------------------------------------------------------*/
 
+#define Seg7_Pin GPIO_PIN_13
+#define Seg7_GPIO_Port GPIOC
+#define SegB_Pin GPIO_PIN_0
+#define SegB_GPIO_Port GPIOA
+#define SegF_Pin GPIO_PIN_1
+#define SegF_GPIO_Port GPIOA
+#define SegA_Pin GPIO_PIN_2
+#define SegA_GPIO_Port GPIOA
 #define Seg2_Pin GPIO_PIN_3
 #define Seg2_GPIO_Port GPIOA
 #define Seg3_Pin GPIO_PIN_4
 #define Seg3_GPIO_Port GPIOA
 #define Seg4_Pin GPIO_PIN_5
 #define Seg4_GPIO_Port GPIOA
+#define Seg6_Pin GPIO_PIN_6
+#define Seg6_GPIO_Port GPIOA
+#define Seg8_Pin GPIO_PIN_7
+#define Seg8_GPIO_Port GPIOA
+#define SegH_Pin GPIO_PIN_0
+#define SegH_GPIO_Port GPIOB
+#define SegD_Pin GPIO_PIN_1
+#define SegD_GPIO_Port GPIOB
+#define SegC_Pin GPIO_PIN_10
+#define SegC_GPIO_Port GPIOB
+#define SegE_Pin GPIO_PIN_11
+#define SegE_GPIO_Port GPIOB
+#define SegG_Pin GPIO_PIN_3
+#define SegG_GPIO_Port GPIOB
+#define Seg5_Pin GPIO_PIN_4
+#define Seg5_GPIO_Port GPIOB
+#define SegGB5_Pin GPIO_PIN_5
+#define SegGB5_GPIO_Port GPIOB
 #define Seg1_Pin GPIO_PIN_8
 #define Seg1_GPIO_Port GPIOB
+#define Seg9_Pin GPIO_PIN_9
+#define Seg9_GPIO_Port GPIOB
 
 /* ########################## Assert Selection ############################## */
 /**
-  * @brief Uncomment the line below to expanse the "assert_param" macro in the
+  * @brief Uncomment the line below to expanse the "assert_param" macro in the 
   *        HAL drivers code
   */
 /* #define USE_FULL_ASSERT    1U */
@@ -79,11 +107,11 @@ void _Error_Handler(char *, int);
 
 /**
   * @}
-  */
+  */ 
 
 /**
   * @}
-*/
+*/ 
 
 #endif /* __MAIN_H */
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
