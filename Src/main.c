@@ -5,7 +5,7 @@
   ******************************************************************************
   ** This notice applies to any and all portions of this file
   * that are not between comment pairs USER CODE BEGIN and
-  * USER CODE END. Other portions of this file, whether 
+  * USER CODE END. Other portions of this file, whether
   * inserted by the user or by software development tools
   * are owned by their respective copyright owners.
   *
@@ -41,7 +41,9 @@
 #include "stm32f1xx_hal.h"
 
 /* USER CODE BEGIN Includes */
-
+#include "classdefs.hpp"
+#include <string.h> /* memset */
+#include <unistd.h> /* close */
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
@@ -51,7 +53,8 @@ UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
-
+static char buf[20] = {0};
+static IW18_PinState dots[9] = {OFF};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -62,7 +65,8 @@ static void MX_USART1_UART_Init(void);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
-
+void gpio_clr(GPIO_PinState state);
+void printCharOnSegment(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin, char num, IW18_PinState dot);
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
@@ -103,12 +107,27 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  memset(dots,OFF,9);
+  memset(buf,0,20);
   while (1)
   {
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
 
+  sprintf(buf,"%02d-%02d-%02d", 22, 15, 4 );
+  dots[4] = dots[6] = OFF;
+
+
+	  printCharOnSegment(GPIOB,Seg1_Pin,0, dots[0]);//0 = 48
+	  printCharOnSegment(GPIOA,Seg2_Pin,buf[0], dots[1]);
+	  printCharOnSegment(GPIOA,Seg3_Pin,buf[1], dots[2]); // '-' = 45, '9' = 59
+	  printCharOnSegment(GPIOA,Seg4_Pin,buf[2], dots[3]);
+	  printCharOnSegment(GPIOB,Seg5_Pin,buf[3], dots[4]);
+	  printCharOnSegment(GPIOA,Seg6_Pin,buf[4], dots[5]);
+	  printCharOnSegment(GPIOC,Seg7_Pin,buf[5], dots[6]);
+	  printCharOnSegment(GPIOA,Seg8_Pin,buf[6], dots[7]);
+	  printCharOnSegment(GPIOB,Seg9_Pin,buf[7], dots[8]);
   }
   /* USER CODE END 3 */
 
@@ -122,7 +141,7 @@ void SystemClock_Config(void)
   RCC_OscInitTypeDef RCC_OscInitStruct;
   RCC_ClkInitTypeDef RCC_ClkInitStruct;
 
-    /**Initializes the CPU, AHB and APB busses clocks 
+    /**Initializes the CPU, AHB and APB busses clocks
     */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
@@ -133,7 +152,7 @@ void SystemClock_Config(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-    /**Initializes the CPU, AHB and APB busses clocks 
+    /**Initializes the CPU, AHB and APB busses clocks
     */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
@@ -147,11 +166,11 @@ void SystemClock_Config(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-    /**Configure the Systick interrupt time 
+    /**Configure the Systick interrupt time
     */
   HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq()/1000);
 
-    /**Configure the Systick 
+    /**Configure the Systick
     */
   HAL_SYSTICK_CLKSourceConfig(SYSTICK_CLKSOURCE_HCLK);
 
@@ -198,9 +217,9 @@ static void MX_USART1_UART_Init(void)
 
 }
 
-/** Configure pins as 
-        * Analog 
-        * Input 
+/** Configure pins as
+        * Analog
+        * Input
         * Output
         * EVENT_OUT
         * EXTI
@@ -220,12 +239,12 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(Seg7_GPIO_Port, Seg7_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, SegB_Pin|SegF_Pin|SegA_Pin|Seg2_Pin 
+  HAL_GPIO_WritePin(GPIOA, SegB_Pin|SegF_Pin|SegA_Pin|Seg2_Pin
                           |Seg3_Pin|Seg4_Pin|Seg6_Pin|Seg8_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, SegH_Pin|SegD_Pin|SegC_Pin|SegE_Pin 
-                          |SegG_Pin|Seg5_Pin|SegGB5_Pin|Seg1_Pin 
+  HAL_GPIO_WritePin(GPIOB, SegH_Pin|SegD_Pin|SegC_Pin|SegE_Pin
+                          |SegG_Pin|Seg5_Pin|SegGB5_Pin|Seg1_Pin
                           |Seg9_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin : Seg7_Pin */
@@ -234,19 +253,19 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(Seg7_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : SegB_Pin SegF_Pin SegA_Pin Seg2_Pin 
+  /*Configure GPIO pins : SegB_Pin SegF_Pin SegA_Pin Seg2_Pin
                            Seg3_Pin Seg4_Pin Seg6_Pin Seg8_Pin */
-  GPIO_InitStruct.Pin = SegB_Pin|SegF_Pin|SegA_Pin|Seg2_Pin 
+  GPIO_InitStruct.Pin = SegB_Pin|SegF_Pin|SegA_Pin|Seg2_Pin
                           |Seg3_Pin|Seg4_Pin|Seg6_Pin|Seg8_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : SegH_Pin SegD_Pin SegC_Pin SegE_Pin 
-                           SegG_Pin Seg5_Pin SegGB5_Pin Seg1_Pin 
+  /*Configure GPIO pins : SegH_Pin SegD_Pin SegC_Pin SegE_Pin
+                           SegG_Pin Seg5_Pin SegGB5_Pin Seg1_Pin
                            Seg9_Pin */
-  GPIO_InitStruct.Pin = SegH_Pin|SegD_Pin|SegC_Pin|SegE_Pin 
-                          |SegG_Pin|Seg5_Pin|SegGB5_Pin|Seg1_Pin 
+  GPIO_InitStruct.Pin = SegH_Pin|SegD_Pin|SegC_Pin|SegE_Pin
+                          |SegG_Pin|Seg5_Pin|SegGB5_Pin|Seg1_Pin
                           |Seg9_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
@@ -255,7 +274,144 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void gpio_clr(GPIO_PinState state)
+{
+	  HAL_GPIO_WritePin(GPIOB, Seg1_Pin|Seg5_Pin|Seg9_Pin|SegC_Pin|SegD_Pin|SegE_Pin|SegG_Pin|SegH_Pin, state);
+	  HAL_GPIO_WritePin(GPIOC, Seg7_Pin, state);
+	  HAL_GPIO_WritePin(GPIOA, Seg2_Pin|Seg3_Pin|Seg4_Pin|Seg6_Pin|Seg8_Pin|SegA_Pin|SegB_Pin|SegF_Pin, state);
+}
 
+void printCharOnSegment(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin, char num, IW18_PinState dot)
+{
+
+	gpio_clr(OFF);
+
+	HAL_GPIO_WritePin(GPIOx, GPIO_Pin, ON);
+	// '-' = 45, //'0' = 48 ....'9' = 59
+	if(num == '0' || num ==0){
+
+		  HAL_GPIO_WritePin(GPIOA,SegA_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOA,SegB_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOB,SegC_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOB,SegD_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOB,SegE_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOA,SegF_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOB,SegG_Pin,OFF);
+		  HAL_GPIO_WritePin(GPIOB,SegH_Pin,dot);
+	}
+	else if (num == '1') {
+		  HAL_GPIO_WritePin(GPIOA,SegA_Pin,OFF);
+		  HAL_GPIO_WritePin(GPIOA,SegB_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOB,SegC_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOB,SegD_Pin,OFF);
+		  HAL_GPIO_WritePin(GPIOB,SegE_Pin,OFF);
+		  HAL_GPIO_WritePin(GPIOA,SegF_Pin,OFF);
+		  HAL_GPIO_WritePin(GPIOB,SegG_Pin,OFF);
+		  HAL_GPIO_WritePin(GPIOB,SegH_Pin,dot);
+	}
+	else if (num == '2') {
+		  HAL_GPIO_WritePin(GPIOA,SegA_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOA,SegB_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOB,SegC_Pin,OFF);
+		  HAL_GPIO_WritePin(GPIOB,SegD_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOB,SegE_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOA,SegF_Pin,OFF);
+		  HAL_GPIO_WritePin(GPIOB,SegG_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOB,SegH_Pin,dot);
+	}
+	else if (num == '3') {
+		  HAL_GPIO_WritePin(GPIOA,SegA_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOA,SegB_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOB,SegC_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOB,SegD_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOB,SegE_Pin,OFF);
+		  HAL_GPIO_WritePin(GPIOA,SegF_Pin,OFF);
+		  HAL_GPIO_WritePin(GPIOB,SegG_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOB,SegH_Pin,dot);
+	}
+	else if (num == '4') {
+		  HAL_GPIO_WritePin(GPIOA,SegA_Pin,OFF);
+		  HAL_GPIO_WritePin(GPIOA,SegB_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOB,SegC_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOB,SegD_Pin,OFF);
+		  HAL_GPIO_WritePin(GPIOB,SegE_Pin,OFF);
+		  HAL_GPIO_WritePin(GPIOA,SegF_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOB,SegG_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOB,SegH_Pin,dot);
+	}
+	else if (num == '5') {
+		  HAL_GPIO_WritePin(GPIOA,SegA_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOA,SegB_Pin,OFF);
+		  HAL_GPIO_WritePin(GPIOB,SegC_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOB,SegD_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOB,SegE_Pin,OFF);
+		  HAL_GPIO_WritePin(GPIOA,SegF_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOB,SegG_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOE,SegH_Pin,dot);
+	}
+	else if (num == '6') {
+		  HAL_GPIO_WritePin(GPIOA,SegA_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOA,SegB_Pin,OFF);
+		  HAL_GPIO_WritePin(GPIOB,SegC_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOB,SegD_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOB,SegE_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOA,SegF_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOB,SegG_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOE,SegH_Pin,dot);
+	}
+	else if (num == '7') {
+		  HAL_GPIO_WritePin(GPIOA,SegA_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOA,SegB_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOB,SegC_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOB,SegD_Pin,OFF);
+		  HAL_GPIO_WritePin(GPIOB,SegE_Pin,OFF);
+		  HAL_GPIO_WritePin(GPIOA,SegF_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOB,SegG_Pin,OFF);
+		  HAL_GPIO_WritePin(GPIOE,SegH_Pin,dot);
+	}
+	else if (num == '8') {
+		  HAL_GPIO_WritePin(GPIOA,SegA_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOA,SegB_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOB,SegC_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOB,SegD_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOB,SegE_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOA,SegF_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOB,SegG_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOE,SegH_Pin,dot);
+	}
+	else if (num == '9') {
+		  HAL_GPIO_WritePin(GPIOA,SegA_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOA,SegB_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOB,SegC_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOB,SegD_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOB,SegE_Pin,OFF);
+		  HAL_GPIO_WritePin(GPIOA,SegF_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOB,SegG_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOB,SegH_Pin,dot);
+	}
+	else if (num == '-') {
+		  HAL_GPIO_WritePin(GPIOA,SegA_Pin,OFF);
+		  HAL_GPIO_WritePin(GPIOA,SegB_Pin,OFF);
+		  HAL_GPIO_WritePin(GPIOB,SegC_Pin,OFF);
+		  HAL_GPIO_WritePin(GPIOB,SegD_Pin,OFF);
+		  HAL_GPIO_WritePin(GPIOB,SegE_Pin,OFF);
+		  HAL_GPIO_WritePin(GPIOA,SegF_Pin,OFF);
+		  HAL_GPIO_WritePin(GPIOB,SegG_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOB,SegH_Pin,dot);
+	}
+	else{
+		  HAL_GPIO_WritePin(GPIOA,SegA_Pin,OFF);
+		  HAL_GPIO_WritePin(GPIOA,SegB_Pin,OFF);
+		  HAL_GPIO_WritePin(GPIOB,SegC_Pin,OFF);
+		  HAL_GPIO_WritePin(GPIOB,SegD_Pin,OFF);
+		  HAL_GPIO_WritePin(GPIOB,SegE_Pin,OFF);
+		  HAL_GPIO_WritePin(GPIOA,SegF_Pin,OFF);
+		  HAL_GPIO_WritePin(GPIOB,SegG_Pin,OFF);
+		  HAL_GPIO_WritePin(GPIOB,SegH_Pin,ON);
+	}
+	//HAL_Delay(1);
+
+}
 /* USER CODE END 4 */
 
 /**
@@ -270,7 +426,7 @@ void _Error_Handler(char * file, int line)
   while(1)
   {
   }
-  /* USER CODE END Error_Handler_Debug */ 
+  /* USER CODE END Error_Handler_Debug */
 }
 
 #ifdef USE_FULL_ASSERT
@@ -295,10 +451,10 @@ void assert_failed(uint8_t* file, uint32_t line)
 
 /**
   * @}
-  */ 
+  */
 
 /**
   * @}
-*/ 
+*/
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
