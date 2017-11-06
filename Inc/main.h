@@ -63,8 +63,6 @@
 #define Seg4_GPIO_Port GPIOA
 #define Seg6_Pin GPIO_PIN_6
 #define Seg6_GPIO_Port GPIOA
-#define Seg8_Pin GPIO_PIN_7
-#define Seg8_GPIO_Port GPIOA
 #define SegH_Pin GPIO_PIN_0
 #define SegH_GPIO_Port GPIOB
 #define SegD_Pin GPIO_PIN_1
@@ -73,6 +71,8 @@
 #define SegC_GPIO_Port GPIOB
 #define SegE_Pin GPIO_PIN_11
 #define SegE_GPIO_Port GPIOB
+#define Seg8_Pin GPIO_PIN_11
+#define Seg8_GPIO_Port GPIOA
 #define SegG_Pin GPIO_PIN_3
 #define SegG_GPIO_Port GPIOB
 #define Seg5_Pin GPIO_PIN_4
