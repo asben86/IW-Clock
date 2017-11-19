@@ -61,13 +61,7 @@ UART_HandleTypeDef huart1;
 /* Private variables ---------------------------------------------------------*/
 static char buf[10] = {0};
 static IW18_PinState dots[9] = {OFF};
-uint8_t Received[100];
-uint8_t recvBytes = 0;
-static uint8_t RxBuf[100];
-uint16_t RxBufIndex = 0;
-static uint8_t aTxEndMessage[20] = {0};
 IW18_PinState uart_led = OFF;
-char ntp_key[] = "NTP CLIENT OK! ";
 static uint8_t index = 0;
 static UartCommand* pCommands = 0;
 /* USER CODE END PV */
@@ -125,16 +119,13 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  //HAL_Delay(5000);
   //initialise_monitor_handles();
   memset(dots,OFF,9);
   memset(buf,0,20);
-  memset(RxBuf,0,100);
-  memset(aTxEndMessage,0,20);
   UartCommand test[5];
   pCommands = &test[0];
-  test[0] = UC_CreateUartCommand(GetCmdID(), GetSync, ReadSync);
-  test[1] = UC_CreateUartCommand(GetCmdID(), GetTime, ReadTime);
+  test[0] = UC_CreateUartCommand(GetCmdID(), NTP_ReserveBufferTx4Sync, ReadSync);
+  test[1] = UC_CreateUartCommand(GetCmdID(), NTP_ReserveBufferTx4Time, ReadTime);
 
   UartCommand* cmd = &test[index];
   HAL_StatusTypeDef def = HAL_UART_Transmit_IT(&huart1, (uint8_t*)(cmd->m_Tx.buf_cmd), cmd->m_Tx.buf_size);

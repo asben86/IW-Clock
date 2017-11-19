@@ -31,12 +31,10 @@ static uint8_t CmdID = 0;
 	};
 
 Buffer ReadTime();
-Buffer ReadYear();
 Buffer ReadSync();
 
-Buffer GetYear(uint8_t cmd_id);
-Buffer GetTime(uint8_t cmd_id);
-Buffer GetSync(uint8_t cmd_id);
+Buffer NTP_ReserveBufferTx4Time(uint8_t cmd_id);
+Buffer NTP_ReserveBufferTx4Sync(uint8_t cmd_id);
 uint8_t GetCmdID();
 uint8_t ReadCmdID();
 

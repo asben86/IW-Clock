@@ -21,14 +21,6 @@ Buffer ReadTime()
 	return x;
 }
 
-Buffer ReadYear()
-{
-	Buffer x;
-	x.buf_cmd = pRx;
-	x.buf_size = 3;
-	pRx+=x.buf_size;
-	return x;
-}
 
 Buffer ReadSync()
 {
@@ -40,22 +32,7 @@ Buffer ReadSync()
 	return x;
 }
 
-Buffer GetYear(uint8_t cmd_id)
-{
-	if((&Tx[100] - pTx) <30)
-	{
-		pTx=&Tx[0];
-		memset(pTx, 0, 100);
-	}
-	Buffer x;
-	x.buf_cmd = pTx;
-	int size = sizeof("ntp.GetYear(%03d)\r\n");
-	x.buf_size = sprintf(x.buf_cmd,"ntp.GetYear(%03d)\r\n", cmd_id);
-	pTx+=x.buf_size + 1; // behind 0 which end string
-	return x;
-}
-
-Buffer GetTime(uint8_t cmd_id)
+Buffer NTP_ReserveBufferTx4Time(uint8_t cmd_id)
 {
 	Buffer x;
 	x.buf_cmd = pTx;
@@ -64,7 +41,7 @@ Buffer GetTime(uint8_t cmd_id)
 	return x;
 }
 
-Buffer GetSync(uint8_t cmd_id)
+Buffer NTP_ReserveBufferTx4Sync(uint8_t cmd_id)
 {
 	Buffer x;
 	x.buf_cmd = pTx;
