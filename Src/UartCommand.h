@@ -14,13 +14,17 @@ typedef struct UartCommand
 	uint8_t m_cmd_id;
 	FuncUartTx m_pFuncSend;
 	FuncUartRx m_pFuncRecive;
+	FuncUartExe m_pFuncExecute;
 	Buffer m_Tx;
 	Buffer m_Rx;
 	uint8_t m_IsRecivedData;
+	uint8_t m_IsTransmitedData;
+	uint8_t m_IsExecuted ;
+
 
 }UartCommand;
 
-UartCommand UC_CreateUartCommand(uint8_t cmdId, FuncUartTx pFuncUartTx, FuncUartRx pFuncUartRx);
+void UC_CreateUartCommand(UartCommand* ptr, uint8_t cmdId, FuncUartTx pFuncUartTx, FuncUartRx pFuncUartRx, FuncUartExe pExe);
 
 uint8_t UC_GetCmdId(UartCommand* pUCmd);
 

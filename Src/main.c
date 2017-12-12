@@ -45,8 +45,9 @@
 #include <unistd.h> /* close */
 #include "stm32f1xx_hal_uart.h"
 #include <stdlib.h>     /* atoi */
-
+#include "Buffers.h"
 #include "UartCommand.h"
+#include "CommandsManager.h"
 #include "Ntp.h"
 /* USER CODE END Includes */
 
@@ -54,6 +55,8 @@
 I2C_HandleTypeDef hi2c1;
 
 RTC_HandleTypeDef hrtc;
+
+TIM_HandleTypeDef htim2;
 
 UART_HandleTypeDef huart1;
 
@@ -63,7 +66,7 @@ static char buf[10] = {0};
 static IW18_PinState dots[9] = {OFF};
 IW18_PinState uart_led = OFF;
 static uint8_t index = 0;
-static UartCommand* pCommands = 0;
+static UartCommand* pCommands2 = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -72,12 +75,15 @@ static void MX_GPIO_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_RTC_Init(void);
+static void MX_TIM2_Init(void);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
 void gpio_clr(GPIO_PinState state);
 void printCharOnSegment(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin, char num, IW18_PinState dot);
 void setDateTime(char* pBuf);
+extern void TIM2_callback();
+
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
@@ -112,23 +118,30 @@ int main(void)
   MX_I2C1_Init();
   MX_USART1_UART_Init();
   MX_RTC_Init();
+  MX_TIM2_Init();
 
   /* USER CODE BEGIN 2 */
+  HAL_TIM_Base_Start_IT(&htim2);
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   //initialise_monitor_handles();
+  CM_init();
+  Buffers_init();
+  NTP_init(&hrtc);
+  CM_SetUartHandle(&huart1);
   memset(dots,OFF,9);
-  memset(buf,0,20);
   UartCommand test[5];
-  pCommands = &test[0];
-  test[0] = UC_CreateUartCommand(GetCmdID(), NTP_ReserveBufferTx4Sync, ReadSync);
-  test[1] = UC_CreateUartCommand(GetCmdID(), NTP_ReserveBufferTx4Time, ReadTime);
+  pCommands2 = &test[0];
+  //test[0] = UC_CreateUartCommand(GetCmdID(), NTP_ReserveBufferTxEnter, ReadEnter);
+//  test[0] = UC_CreateUartCommand(GetCmdID(), NTP_ReserveBufferTx4Sync, ReadSync);
+//  test[1] = UC_CreateUartCommand(GetCmdID(), NTP_ReserveBufferTx4Time, ReadTime);
+//  test[2] = UC_CreateUartCommand(GetCmdID(), NTP_ReserveBufferTx4Hum, ReadHumi);
 
   UartCommand* cmd = &test[index];
-  HAL_StatusTypeDef def = HAL_UART_Transmit_IT(&huart1, (uint8_t*)(cmd->m_Tx.buf_cmd), cmd->m_Tx.buf_size);
+  //HAL_StatusTypeDef def = HAL_UART_Transmit_IT(&huart1, (uint8_t*)(cmd->m_Tx.buf_cmd), cmd->m_Tx.buf_size);
   cmd = &test[1];
   RTC_TimeTypeDef sTime;
 
@@ -144,42 +157,27 @@ int main(void)
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
-  if(cmd->m_IsRecivedData)
-  {
-	  setDateTime(cmd->m_Rx.buf_cmd);
-	  cmd->m_IsRecivedData = 0;
-  }
-
-  memset(&buf[0], 0, 10);
-  if( HAL_OK== HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN) )
-  {
-
-	  sprintf(&buf[0],"%02d-%02d-%02d", sTime.Hours, sTime.Minutes, sTime.Seconds );
-  }
-  uint8_t ms = 1;
-  dots[4] = dots[6] = OFF;
-  //HAL_Delay(1);
-  HAL_Delay(ms);
-  printCharOnSegment(GPIOB,Seg1_Pin,'.', uart_led);//0 = 48
-
-  HAL_Delay(ms);
-  printCharOnSegment(GPIOB,Seg1_Pin,0, dots[0]);//0 = 48
-  HAL_Delay(ms);
-  printCharOnSegment(GPIOA,Seg2_Pin,buf[0], dots[1]);
-  HAL_Delay(ms);
-  printCharOnSegment(GPIOA,Seg3_Pin,buf[1], dots[2]); // '-' = 45, '9' = 59
-  HAL_Delay(ms);
-  printCharOnSegment(GPIOA,Seg4_Pin,buf[2], dots[3]);
-  HAL_Delay(ms);
-  printCharOnSegment(GPIOB,Seg5_Pin,buf[3], dots[4]);
-  HAL_Delay(ms);
-  printCharOnSegment(GPIOA,Seg6_Pin,buf[4], dots[5]);
-  HAL_Delay(ms);
-  printCharOnSegment(GPIOC,Seg7_Pin,buf[5], dots[6]);
-  HAL_Delay(ms);
-  printCharOnSegment(GPIOA,Seg8_Pin,buf[6], dots[7]);
-  HAL_Delay(ms);
-  printCharOnSegment(GPIOB,Seg9_Pin,buf[7], dots[8]);
+	  HAL_Delay(1000);
+	  CM_StateManager();
+	  CM_ExecuteCommand();
+//  cmd = &test[1];
+//  if(cmd->m_IsRecivedData)
+//  {
+//	  setDateTime(cmd->m_Rx.buf_cmd);
+//	  cmd->m_IsRecivedData = 0;
+//  }
+//
+//  cmd = &test[2];
+//  if(cmd->m_IsRecivedData)
+//  {
+//	  //setHumidity(cmd->m_Rx.buf_cmd);
+//	  cmd->m_IsRecivedData = 0;
+//  }
+//
+//  if( HAL_OK== HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN) )
+//  {
+//	  sprintf(&buf[0],"%02d-%02d-%02d", sTime.Hours, sTime.Minutes, sTime.Seconds );
+//  }
 
   }
   /* USER CODE END 3 */
@@ -199,8 +197,12 @@ void SystemClock_Config(void)
     */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI|RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
   RCC_OscInitStruct.LSIState = RCC_LSI_ON;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
@@ -210,12 +212,12 @@ void SystemClock_Config(void)
     */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSE;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
   }
@@ -307,6 +309,47 @@ static void MX_RTC_Init(void)
 
 }
 
+/* TIM2 init function */
+static void MX_TIM2_Init(void)
+{
+
+  TIM_ClockConfigTypeDef sClockSourceConfig;
+  TIM_SlaveConfigTypeDef sSlaveConfig;
+  TIM_MasterConfigTypeDef sMasterConfig;
+
+  htim2.Instance = TIM2;
+  htim2.Init.Prescaler = 28500;
+  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim2.Init.Period = 1;
+  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
+  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+  sSlaveConfig.SlaveMode = TIM_SLAVEMODE_RESET;
+  sSlaveConfig.InputTrigger = TIM_TS_ITR0;
+  if (HAL_TIM_SlaveConfigSynchronization(&htim2, &sSlaveConfig) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+}
+
 /* USART1 init function */
 static void MX_USART1_UART_Init(void)
 {
@@ -332,6 +375,7 @@ static void MX_USART1_UART_Init(void)
         * Output
         * EVENT_OUT
         * EXTI
+     PA8   ------> S_TIM1_CH1
 */
 static void MX_GPIO_Init(void)
 {
@@ -353,7 +397,8 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, SegH_Pin|SegD_Pin|SegC_Pin|SegE_Pin
-                          |SegG_Pin|Seg5_Pin|Seg1_Pin|Seg9_Pin, GPIO_PIN_SET);
+                          |toggle_Pin|SegG_Pin|Seg5_Pin|Seg1_Pin
+                          |Seg9_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin : Seg7_Pin */
   GPIO_InitStruct.Pin = Seg7_Pin;
@@ -370,12 +415,20 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pins : SegH_Pin SegD_Pin SegC_Pin SegE_Pin
-                           SegG_Pin Seg5_Pin Seg1_Pin Seg9_Pin */
+                           toggle_Pin SegG_Pin Seg5_Pin Seg1_Pin
+                           Seg9_Pin */
   GPIO_InitStruct.Pin = SegH_Pin|SegD_Pin|SegC_Pin|SegE_Pin
-                          |SegG_Pin|Seg5_Pin|Seg1_Pin|Seg9_Pin;
+                          |toggle_Pin|SegG_Pin|Seg5_Pin|Seg1_Pin
+                          |Seg9_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PA8 */
+  GPIO_InitStruct.Pin = GPIO_PIN_8;
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
 }
 
@@ -505,6 +558,26 @@ void printCharOnSegment(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin, char num, IW18_P
 		  HAL_GPIO_WritePin(GPIOB,SegG_Pin,ON);
 		  HAL_GPIO_WritePin(GPIOB,SegH_Pin,dot);
 	}
+	else if (num == '.') {
+		  HAL_GPIO_WritePin(GPIOA,SegA_Pin,OFF);
+		  HAL_GPIO_WritePin(GPIOA,SegB_Pin,OFF);
+		  HAL_GPIO_WritePin(GPIOB,SegC_Pin,OFF);
+		  HAL_GPIO_WritePin(GPIOB,SegD_Pin,OFF);
+		  HAL_GPIO_WritePin(GPIOB,SegE_Pin,OFF);
+		  HAL_GPIO_WritePin(GPIOA,SegF_Pin,OFF);
+		  HAL_GPIO_WritePin(GPIOB,SegG_Pin,OFF);
+		  HAL_GPIO_WritePin(GPIOB,SegH_Pin,ON);
+	}
+	else if(num == 'h')
+	{
+		  HAL_GPIO_WritePin(GPIOA,SegA_Pin,OFF);
+		  HAL_GPIO_WritePin(GPIOA,SegB_Pin,OFF);
+		  HAL_GPIO_WritePin(GPIOB,SegC_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOB,SegD_Pin,OFF);
+		  HAL_GPIO_WritePin(GPIOB,SegE_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOA,SegF_Pin,ON);
+		  HAL_GPIO_WritePin(GPIOB,SegG_Pin,ON);
+	}
 	else{
 		  HAL_GPIO_WritePin(GPIOA,SegA_Pin,OFF);
 		  HAL_GPIO_WritePin(GPIOA,SegB_Pin,OFF);
@@ -564,28 +637,63 @@ void setDateTime(char* pBuf)
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
-	  UartCommand* pCmd = UC_FindUartCommand(pCommands, 4, index);
+	  UartCommand* pCmd =  CM_FindUartCommand(ReadCmdID() - 1);//UC_FindUartCommand(CM_GetCommands(), CM_GetCommandsCount(), ReadCmdID() - 1);
+	  pCmd->m_IsTransmitedData = 1;
 	  if(pCmd==0) return;
-	  HAL_UART_Receive_IT(huart, pCmd->m_Rx.buf_cmd,  pCmd->m_Rx.buf_size);
 
+	  HAL_UART_Receive_IT(huart, pCmd->m_Rx.buf_cmd, pCmd->m_Rx.buf_size);
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-	  uint8_t                       *pRxBuffPtrTest = huart->pRxBuffPtr - huart->RxXferSize;
-	  char buf[4];
+	  uint8_t *pRxBuffPtrTest = huart->pRxBuffPtr - huart->RxXferSize;
+	  char buf[4] = {0, 0, 0, 0};
 	  memcpy(&buf[0],pRxBuffPtrTest, 3);
-	  buf[4] = 0;
 	  uint8_t cmd_id = atoi(&buf[0]);
-	  UartCommand* pCmd = UC_FindUartCommand(pCommands, 4, cmd_id);
+	  if(buf[0] == '>')
+	  {
+		  memcpy(&buf[0],pRxBuffPtrTest+2, 3);
+		  cmd_id = atoi(&buf[0]);
+	  }
+	  UartCommand* pCmd = CM_FindUartCommand(cmd_id);
 	  pCmd->m_IsRecivedData = 1;
-	  if(pCmd==0) return;
+}
 
-	  //NTP_Execute(pCmd->m_pFuncRecive, &pCmd->m_Rx);
-	  pCmd = UC_FindUartCommand(pCommands, 4, ++index);
-	  if(pCmd==0) return;
+void TIM2_callback()
+{
+	char* disp = IW18_BUF();
+	static uint8_t segment = 0;
 
-	  HAL_StatusTypeDef def = HAL_UART_Transmit_IT(huart, (uint8_t*)(pCmd->m_Tx.buf_cmd), pCmd->m_Tx.buf_size);
+		if(segment == 1){
+			printCharOnSegment(GPIOB,Seg1_Pin,0, dots[0]);//0 = 48
+		}
+		else if(segment == 2){
+			printCharOnSegment(GPIOA,Seg2_Pin, disp[0], dots[1]);
+		}
+		else if(segment == 3){
+			printCharOnSegment(GPIOA,Seg3_Pin, disp[1], dots[2]); // '-' = 45, '9' = 59
+		}
+		else if(segment == 4){
+			printCharOnSegment(GPIOA,Seg4_Pin, disp[2], dots[3]);
+		}
+		else if(segment == 5){
+			printCharOnSegment(GPIOB,Seg5_Pin, disp[3], dots[4]);
+		}
+		else if(segment == 6){
+			printCharOnSegment(GPIOA,Seg6_Pin, disp[4], dots[5]);
+		}
+		else if(segment == 7){
+			printCharOnSegment(GPIOC,Seg7_Pin, disp[5], dots[6]);
+		}
+		else if(segment == 8){
+			printCharOnSegment(GPIOA,Seg8_Pin, disp[6], dots[7]);
+		}
+		else if(segment == 9){
+			printCharOnSegment(GPIOB,Seg9_Pin, disp[7], dots[8]);
+		}
+		if(segment++>8) segment=0;
+
+	  //AS_RDA5807M_ReadRegisters();
 }
 /* USER CODE END 4 */
 

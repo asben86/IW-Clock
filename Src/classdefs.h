@@ -22,4 +22,8 @@ typedef struct Buffer{
 
 typedef Buffer (*FuncUartTx)(uint8_t);
 typedef Buffer (*FuncUartRx)();
+typedef void (*FuncUartExe)(char*);
+
+
+
 #endif /* CLASSDEFS_H_ */

@@ -7,16 +7,17 @@
 
 #include "UartCommand.h"
 
-UartCommand UC_CreateUartCommand(uint8_t cmdId, FuncUartTx pFuncUartTx, FuncUartRx pFuncUartRx)
+void UC_CreateUartCommand(UartCommand* ptr, uint8_t cmdId, FuncUartTx pFuncUartTx, FuncUartRx pFuncUartRx, FuncUartExe pExe)
 {
-	UartCommand cmd;
-	cmd.m_cmd_id = cmdId;
-	cmd.m_Tx = pFuncUartTx(cmdId);
-	cmd.m_Rx = pFuncUartRx(cmdId);
-	cmd.m_pFuncSend = pFuncUartTx;
-	cmd.m_pFuncRecive = pFuncUartRx;
-	cmd.m_IsRecivedData = 0;
-	return cmd;
+	ptr->m_cmd_id = cmdId;
+	ptr->m_Tx = pFuncUartTx(cmdId);
+	ptr->m_Rx = pFuncUartRx(cmdId);
+	ptr->m_pFuncSend = pFuncUartTx;
+	ptr->m_pFuncRecive = pFuncUartRx;
+	ptr->m_pFuncExecute = pExe;
+	ptr->m_IsTransmitedData = 0;
+	ptr->m_IsRecivedData = 0;
+	ptr->m_IsExecuted = 0;
 }
 
 uint8_t UC_GetCmdId(UartCommand* pUCmd)

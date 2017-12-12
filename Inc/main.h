@@ -71,6 +71,8 @@
 #define SegC_GPIO_Port GPIOB
 #define SegE_Pin GPIO_PIN_11
 #define SegE_GPIO_Port GPIOB
+#define toggle_Pin GPIO_PIN_12
+#define toggle_GPIO_Port GPIOB
 #define Seg8_Pin GPIO_PIN_11
 #define Seg8_GPIO_Port GPIOA
 #define SegG_Pin GPIO_PIN_3
