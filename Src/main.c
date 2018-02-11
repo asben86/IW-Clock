@@ -56,6 +56,8 @@ I2C_HandleTypeDef hi2c1;
 
 RTC_HandleTypeDef hrtc;
 
+TIM_HandleTypeDef htim1;
+TIM_HandleTypeDef htim1a;
 TIM_HandleTypeDef htim2;
 
 UART_HandleTypeDef huart1;
@@ -76,12 +78,17 @@ static void MX_I2C1_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_RTC_Init(void);
 static void MX_TIM2_Init(void);
+static void MX_TIM1_Init(TIM_HandleTypeDef *htim1, uint16_t pulse);
+
+void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
+
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
 void gpio_clr(GPIO_PinState state);
 void printCharOnSegment(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin, char num, IW18_PinState dot);
 void setDateTime(char* pBuf);
+void user_pwm_setvalue(uint16_t value);
 extern void TIM2_callback();
 
 /* USER CODE END PFP */
@@ -119,9 +126,25 @@ int main(void)
   MX_USART1_UART_Init();
   MX_RTC_Init();
   MX_TIM2_Init();
+  MX_TIM1_Init(&htim1, 250);
+  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
+  //HAL_Delay(5000);
+
+  HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_1);
+ // HAL_TIM_Base_DeInit(&htim1);
+
+
+  //MX_TIM1_Init(&htim1, 100);
+ // TIM1->EGR |= TIM_EGR_UG;
+  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
 
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start_IT(&htim2);
+  //user_pwm_setvalue(100);
+  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
+
+  //user_pwm_setvalue(300);
+  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
 
   /* USER CODE END 2 */
 
@@ -151,12 +174,23 @@ int main(void)
 
   RTC_DateTypeDef DateToUpdate;
   HAL_RTC_GetDate(&hrtc, &DateToUpdate, RTC_FORMAT_BIN);
+  uint16_t pwm=0;
+
+
+
 
   while (1)
   {
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
+	 // HAL_Delay(500);
+	  //HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_1);
+	  //user_pwm_setvalue(pwm);
+	  pwm=pwm+10;
+	  if(pwm>1000) pwm=0;
+	  //HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
+
 	  HAL_Delay(1000);
 	  CM_StateManager();
 	  CM_ExecuteCommand();
@@ -309,6 +343,73 @@ static void MX_RTC_Init(void)
 
 }
 
+/* TIM1 init function */
+static void MX_TIM1_Init(TIM_HandleTypeDef *htim1, uint16_t pulse)
+{
+
+  TIM_ClockConfigTypeDef sClockSourceConfig;
+  TIM_MasterConfigTypeDef sMasterConfig;
+  TIM_OC_InitTypeDef sConfigOC;
+  TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig;
+
+  htim1->Instance = TIM1;
+  htim1->Init.Prescaler = 280; ///1-170khz,10=32khz
+  htim1->Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim1->Init.Period = 300-1;
+  htim1->Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim1->Init.RepetitionCounter = 20;
+  htim1->Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
+  if (HAL_TIM_Base_Init(htim1) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(htim1, &sClockSourceConfig) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+  if (HAL_TIM_PWM_Init(htim1) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(htim1, &sMasterConfig) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 230;//240 and300pr
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_ENABLE;
+  sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;
+  sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
+  if (HAL_TIM_PWM_ConfigChannel(htim1, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+  sBreakDeadTimeConfig.OffStateRunMode = TIM_OSSR_DISABLE;
+  sBreakDeadTimeConfig.OffStateIDLEMode = TIM_OSSI_DISABLE;
+  sBreakDeadTimeConfig.LockLevel = TIM_LOCKLEVEL_OFF;
+  sBreakDeadTimeConfig.DeadTime = 100;
+  sBreakDeadTimeConfig.BreakState = TIM_BREAK_DISABLE;
+  sBreakDeadTimeConfig.BreakPolarity = TIM_BREAKPOLARITY_HIGH;
+  sBreakDeadTimeConfig.AutomaticOutput = TIM_AUTOMATICOUTPUT_DISABLE;
+  if (HAL_TIMEx_ConfigBreakDeadTime(htim1, &sBreakDeadTimeConfig) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+  HAL_TIM_MspPostInit(htim1);
+
+}
+
 /* TIM2 init function */
 static void MX_TIM2_Init(void)
 {
@@ -375,7 +476,6 @@ static void MX_USART1_UART_Init(void)
         * Output
         * EVENT_OUT
         * EXTI
-     PA8   ------> S_TIM1_CH1
 */
 static void MX_GPIO_Init(void)
 {
@@ -424,12 +524,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PA8 */
-  GPIO_InitStruct.Pin = GPIO_PIN_8;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
 }
 
 /* USER CODE BEGIN 4 */
@@ -439,7 +533,24 @@ void gpio_clr(GPIO_PinState state)
 	  HAL_GPIO_WritePin(GPIOC, Seg7_Pin, state);
 	  HAL_GPIO_WritePin(GPIOA, Seg2_Pin|Seg3_Pin|Seg4_Pin|Seg6_Pin|Seg8_Pin|SegA_Pin|SegB_Pin|SegF_Pin, state);
 }
+void user_pwm_setvalue(uint16_t value)
+{
+    TIM_OC_InitTypeDef sConfigOC;
 
+    sConfigOC.OCMode = TIM_OCMODE_PWM1;
+    sConfigOC.Pulse = value;
+    sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+    sConfigOC.OCFastMode = TIM_OCFAST_ENABLE;
+    HAL_TIM_PWM_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_1);
+
+//    while((TIM1->EGR & TIM_EGR_UG) == SET){}
+//
+     TIM1->EGR |= TIM_EGR_UG;
+//     TIM1->BDTR |= TIM_BDTR_MOE;
+//     TIM1->CCER |= TIM_CCER_CC1E;
+//     TIM1->CR1 |= TIM_CR1_CEN;
+    HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
+}
 void printCharOnSegment(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin, char num, IW18_PinState dot)
 {
 
