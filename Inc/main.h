@@ -1,7 +1,8 @@
 /**
   ******************************************************************************
-  * File Name          : main.hpp
-  * Description        : This file contains the common defines of the application
+  * @file           : main.h
+  * @brief          : Header for main.c file.
+  *                   This file contains the common defines of the application.
   ******************************************************************************
   ** This notice applies to any and all portions of this file
   * that are not between comment pairs USER CODE BEGIN and
@@ -9,7 +10,7 @@
   * inserted by the user or by software development tools
   * are owned by their respective copyright owners.
   *
-  * COPYRIGHT(c) 2017 STMicroelectronics
+  * COPYRIGHT(c) 2018 STMicroelectronics
   *
   * Redistribution and use in source and binary forms, with or without modification,
   * are permitted provided that the following conditions are met:
@@ -35,12 +36,13 @@
   *
   ******************************************************************************
   */
+
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __MAIN_H
-#define __MAIN_H
-  /* Includes ------------------------------------------------------------------*/
+#ifndef __MAIN_H__
+#define __MAIN_H__
 
 /* Includes ------------------------------------------------------------------*/
+
 /* USER CODE BEGIN Includes */
 
 /* USER CODE END Includes */
@@ -71,14 +73,24 @@
 #define SegC_GPIO_Port GPIOB
 #define SegE_Pin GPIO_PIN_11
 #define SegE_GPIO_Port GPIOB
-#define toggle_Pin GPIO_PIN_12
-#define toggle_GPIO_Port GPIOB
+#define buzzer_Pin GPIO_PIN_12
+#define buzzer_GPIO_Port GPIOB
+#define Geiger_CNT_Pin GPIO_PIN_15
+#define Geiger_CNT_GPIO_Port GPIOB
+#define PWM_GEIGER_Pin GPIO_PIN_8
+#define PWM_GEIGER_GPIO_Port GPIOA
 #define Seg8_Pin GPIO_PIN_11
 #define Seg8_GPIO_Port GPIOA
+#define ESP_RST_Pin GPIO_PIN_12
+#define ESP_RST_GPIO_Port GPIOA
+#define CH_PD_Pin GPIO_PIN_15
+#define CH_PD_GPIO_Port GPIOA
 #define SegG_Pin GPIO_PIN_3
 #define SegG_GPIO_Port GPIOB
 #define Seg5_Pin GPIO_PIN_4
 #define Seg5_GPIO_Port GPIOB
+#define PWM_CLOCK_Pin GPIO_PIN_5
+#define PWM_CLOCK_GPIO_Port GPIOB
 #define Seg1_Pin GPIO_PIN_8
 #define Seg1_GPIO_Port GPIOB
 #define Seg9_Pin GPIO_PIN_9
@@ -105,13 +117,6 @@ void _Error_Handler(char *, int);
 }
 #endif
 
-/**
-  * @}
-  */ 
+#endif /* __MAIN_H__ */
 
-/**
-  * @}
-*/ 
-
-#endif /* __MAIN_H */
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

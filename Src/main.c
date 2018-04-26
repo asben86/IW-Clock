@@ -1,7 +1,7 @@
 /**
   ******************************************************************************
-  * File Name          : main.c
-  * Description        : Main program body
+  * @file           : main.c
+  * @brief          : Main program body
   ******************************************************************************
   ** This notice applies to any and all portions of this file
   * that are not between comment pairs USER CODE BEGIN and
@@ -9,7 +9,7 @@
   * inserted by the user or by software development tools
   * are owned by their respective copyright owners.
   *
-  * COPYRIGHT(c) 2017 STMicroelectronics
+  * COPYRIGHT(c) 2018 STMicroelectronics
   *
   * Redistribution and use in source and binary forms, with or without modification,
   * are permitted provided that the following conditions are met:
@@ -35,7 +35,6 @@
   *
   ******************************************************************************
   */
-
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "stm32f1xx_hal.h"
@@ -57,8 +56,8 @@ I2C_HandleTypeDef hi2c1;
 RTC_HandleTypeDef hrtc;
 
 TIM_HandleTypeDef htim1;
-TIM_HandleTypeDef htim1a;
 TIM_HandleTypeDef htim2;
+TIM_HandleTypeDef htim3;
 
 UART_HandleTypeDef huart1;
 
@@ -78,7 +77,8 @@ static void MX_I2C1_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_RTC_Init(void);
 static void MX_TIM2_Init(void);
-static void MX_TIM1_Init(TIM_HandleTypeDef *htim1, uint16_t pulse);
+static void MX_TIM1_Init(void);
+static void MX_TIM3_Init(void);
 
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 
@@ -97,9 +97,13 @@ extern void TIM2_callback();
 extern void initialise_monitor_handles(void);
 /* USER CODE END 0 */
 
+/**
+  * @brief  The application entry point.
+  *
+  * @retval None
+  */
 int main(void)
 {
-
   /* USER CODE BEGIN 1 */
 
   /* USER CODE END 1 */
@@ -126,18 +130,8 @@ int main(void)
   MX_USART1_UART_Init();
   MX_RTC_Init();
   MX_TIM2_Init();
-  MX_TIM1_Init(&htim1, 250);
-  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
-  //HAL_Delay(5000);
-
-  HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_1);
- // HAL_TIM_Base_DeInit(&htim1);
-
-
-  //MX_TIM1_Init(&htim1, 100);
- // TIM1->EGR |= TIM_EGR_UG;
-  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
-
+  MX_TIM1_Init();
+  MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start_IT(&htim2);
   //user_pwm_setvalue(100);
@@ -191,9 +185,16 @@ int main(void)
 	  if(pwm>1000) pwm=0;
 	  //HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
 
-	  HAL_Delay(1000);
+	  //HAL_Delay(1000);
 	  CM_StateManager();
 	  CM_ExecuteCommand();
+	  GPIO_PinState state = HAL_GPIO_ReadPin(GPIOB,Geiger_CNT_Pin);
+	  if(state == GPIO_PIN_SET)
+	  {
+		  HAL_Delay(100);
+		  state = GPIO_PIN_RESET;
+	  }
+
 //  cmd = &test[1];
 //  if(cmd->m_IsRecivedData)
 //  {
@@ -218,8 +219,10 @@ int main(void)
 
 }
 
-/** System Clock Configuration
-*/
+/**
+  * @brief System Clock Configuration
+  * @retval None
+  */
 void SystemClock_Config(void)
 {
 
@@ -309,6 +312,7 @@ static void MX_RTC_Init(void)
     /**Initialize RTC Only
     */
   hrtc.Instance = RTC;
+  if(HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR1) != 0x32F2){
   hrtc.Init.AsynchPrediv = RTC_AUTO_1_SECOND;
   hrtc.Init.OutPut = RTC_OUTPUTSOURCE_NONE;
   if (HAL_RTC_Init(&hrtc) != HAL_OK)
@@ -318,7 +322,6 @@ static void MX_RTC_Init(void)
 
     /**Initialize RTC and set the Time and Date
     */
-  if(HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR1) != 0x32F2){
   sTime.Hours = 9;
   sTime.Minutes = 48;
   sTime.Seconds = 0;
@@ -344,7 +347,7 @@ static void MX_RTC_Init(void)
 }
 
 /* TIM1 init function */
-static void MX_TIM1_Init(TIM_HandleTypeDef *htim1, uint16_t pulse)
+static void MX_TIM1_Init(void)
 {
 
   TIM_ClockConfigTypeDef sClockSourceConfig;
@@ -352,44 +355,44 @@ static void MX_TIM1_Init(TIM_HandleTypeDef *htim1, uint16_t pulse)
   TIM_OC_InitTypeDef sConfigOC;
   TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig;
 
-  htim1->Instance = TIM1;
-  htim1->Init.Prescaler = 280; ///1-170khz,10=32khz
-  htim1->Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim1->Init.Period = 300-1;
-  htim1->Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim1->Init.RepetitionCounter = 20;
-  htim1->Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
-  if (HAL_TIM_Base_Init(htim1) != HAL_OK)
+  htim1.Instance = TIM1;
+  htim1.Init.Prescaler = 0;
+  htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim1.Init.Period = 65535;
+  htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim1.Init.RepetitionCounter = 200;
+  htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim1) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
   }
 
   sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
-  if (HAL_TIM_ConfigClockSource(htim1, &sClockSourceConfig) != HAL_OK)
+  if (HAL_TIM_ConfigClockSource(&htim1, &sClockSourceConfig) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
   }
 
-  if (HAL_TIM_PWM_Init(htim1) != HAL_OK)
+  if (HAL_TIM_PWM_Init(&htim1) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
   }
 
   sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
   sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-  if (HAL_TIMEx_MasterConfigSynchronization(htim1, &sMasterConfig) != HAL_OK)
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
   }
 
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 230;//240 and300pr
+  sConfigOC.Pulse = 100;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
-  sConfigOC.OCFastMode = TIM_OCFAST_ENABLE;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;
   sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
-  if (HAL_TIM_PWM_ConfigChannel(htim1, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  if (HAL_TIM_PWM_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
   }
@@ -397,16 +400,16 @@ static void MX_TIM1_Init(TIM_HandleTypeDef *htim1, uint16_t pulse)
   sBreakDeadTimeConfig.OffStateRunMode = TIM_OSSR_DISABLE;
   sBreakDeadTimeConfig.OffStateIDLEMode = TIM_OSSI_DISABLE;
   sBreakDeadTimeConfig.LockLevel = TIM_LOCKLEVEL_OFF;
-  sBreakDeadTimeConfig.DeadTime = 100;
+  sBreakDeadTimeConfig.DeadTime = 0;
   sBreakDeadTimeConfig.BreakState = TIM_BREAK_DISABLE;
   sBreakDeadTimeConfig.BreakPolarity = TIM_BREAKPOLARITY_HIGH;
   sBreakDeadTimeConfig.AutomaticOutput = TIM_AUTOMATICOUTPUT_DISABLE;
-  if (HAL_TIMEx_ConfigBreakDeadTime(htim1, &sBreakDeadTimeConfig) != HAL_OK)
+  if (HAL_TIMEx_ConfigBreakDeadTime(&htim1, &sBreakDeadTimeConfig) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
   }
 
-  HAL_TIM_MspPostInit(htim1);
+  HAL_TIM_MspPostInit(&htim1);
 
 }
 
@@ -448,6 +451,56 @@ static void MX_TIM2_Init(void)
   {
     _Error_Handler(__FILE__, __LINE__);
   }
+
+}
+
+/* TIM3 init function */
+static void MX_TIM3_Init(void)
+{
+
+  TIM_ClockConfigTypeDef sClockSourceConfig;
+  TIM_MasterConfigTypeDef sMasterConfig;
+  TIM_OC_InitTypeDef sConfigOC;
+
+  htim3.Instance = TIM3;
+  htim3.Init.Prescaler = 0;
+  htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim3.Init.Period = 0;
+  htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim3, &sClockSourceConfig) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+  if (HAL_TIM_PWM_Init(&htim3) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 0;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+  HAL_TIM_MspPostInit(&htim3);
 
 }
 
@@ -497,8 +550,11 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, SegH_Pin|SegD_Pin|SegC_Pin|SegE_Pin
-                          |toggle_Pin|SegG_Pin|Seg5_Pin|Seg1_Pin
+                          |buzzer_Pin|SegG_Pin|Seg5_Pin|Seg1_Pin
                           |Seg9_Pin, GPIO_PIN_SET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOA, ESP_RST_Pin|CH_PD_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : Seg7_Pin */
   GPIO_InitStruct.Pin = Seg7_Pin;
@@ -515,15 +571,26 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pins : SegH_Pin SegD_Pin SegC_Pin SegE_Pin
-                           toggle_Pin SegG_Pin Seg5_Pin Seg1_Pin
+                           buzzer_Pin SegG_Pin Seg5_Pin Seg1_Pin
                            Seg9_Pin */
   GPIO_InitStruct.Pin = SegH_Pin|SegD_Pin|SegC_Pin|SegE_Pin
-                          |toggle_Pin|SegG_Pin|Seg5_Pin|Seg1_Pin
+                          |buzzer_Pin|SegG_Pin|Seg5_Pin|Seg1_Pin
                           |Seg9_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
+  /*Configure GPIO pin : Geiger_CNT_Pin */
+  GPIO_InitStruct.Pin = Geiger_CNT_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(Geiger_CNT_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : ESP_RST_Pin CH_PD_Pin */
+  GPIO_InitStruct.Pin = ESP_RST_Pin|CH_PD_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 }
 
 /* USER CODE BEGIN 4 */
@@ -810,10 +877,11 @@ void TIM2_callback()
 
 /**
   * @brief  This function is executed in case of error occurrence.
-  * @param  None
+  * @param  file: The file name as string.
+  * @param  line: The line in file as a number.
   * @retval None
   */
-void _Error_Handler(char * file, int line)
+void _Error_Handler(char *file, int line)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
   /* User can add his own implementation to report the HAL error return state */
@@ -823,25 +891,22 @@ void _Error_Handler(char * file, int line)
   /* USER CODE END Error_Handler_Debug */
 }
 
-#ifdef USE_FULL_ASSERT
-
+#ifdef  USE_FULL_ASSERT
 /**
-   * @brief Reports the name of the source file and the source line number
-   * where the assert_param error has occurred.
-   * @param file: pointer to the source file name
-   * @param line: assert_param error line source number
-   * @retval None
-   */
+  * @brief  Reports the name of the source file and the source line number
+  *         where the assert_param error has occurred.
+  * @param  file: pointer to the source file name
+  * @param  line: assert_param error line source number
+  * @retval None
+  */
 void assert_failed(uint8_t* file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */
   /* User can add his own implementation to report the file name and line number,
     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
   /* USER CODE END 6 */
-
 }
-
-#endif
+#endif /* USE_FULL_ASSERT */
 
 /**
   * @}
@@ -849,6 +914,6 @@ void assert_failed(uint8_t* file, uint32_t line)
 
 /**
   * @}
-*/
+  */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
